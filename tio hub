@@ -1,0 +1,140 @@
+import pygame
+import sys
+import random
+
+# Inicialização
+pygame.init()
+LARGURA, ALTURA = 800, 600
+TELA = pygame.display.set_mode((LARGURA, ALTURA))
+pygame.display.set_caption("Campeões do Renascimento: Ultimate")
+
+# Cores
+PRETO = (0, 0, 0)
+BRANCO = (255, 255, 255)
+AZUL_ESPAÇO = (10, 10, 30)
+ROXO = (120, 0, 120)
+AMARELO = (255, 255, 0)
+VERDE = (0, 255, 0)
+AZUL_CLARO = (100, 255, 255)
+
+# Fonte
+fonte = pygame.font.SysFont("arial", 22)
+
+# Fundo estilo galáxia
+estrelas = [(random.randint(0, LARGURA), random.randint(0, ALTURA)) for _ in range(200)]
+
+# Classe Campeão
+class Campeao:
+    def __init__(self, nome, x, y, cor):
+        self.nome = nome
+        self.x = x
+        self.y = y
+        self.cor = cor
+        self.hp = 100
+
+    def desenhar(self):
+        pygame.draw.circle(TELA, self.cor, (self.x, self.y), 30)
+        texto = fonte.render(f"{self.nome} ({self.hp} HP)", True, BRANCO)
+        TELA.blit(texto, (self.x - 60, self.y + 35))
+
+    def atacar(self, outro):
+        dano = random.randint(5, 20)
+        outro.hp -= dano
+        return dano
+
+# Criando dois campeões
+heroi = Campeao("Luz Astral", 200, 300, (0, 255, 255))
+inimigo = Campeao("Sombra Cósmica", 600, 300, (255, 0, 100))
+
+# Objetos de coleta
+ovos = []
+baus = []
+mini_baus = []
+
+contador_ovos = 0
+contador_baus = 0
+contador_mini_baus = 0
+
+# Temporizadores
+TIMER_OVO = pygame.USEREVENT + 1
+pygame.time.set_timer(TIMER_OVO, 4000)  # Ovo a cada 4 segundos
+
+TIMER_BAU = pygame.USEREVENT + 2
+pygame.time.set_timer(TIMER_BAU, 6000)  # Baú a cada 6 segundos
+
+TIMER_MINI_BAU = pygame.USEREVENT + 3
+pygame.time.set_timer(TIMER_MINI_BAU, 3000)  # Mini baú a cada 3 segundos
+
+# Loop do jogo
+rodando = True
+turno = "heroi"
+
+while rodando:
+    TELA.fill(AZUL_ESPAÇO)
+
+    # Desenhar estrelas
+    for estrela in estrelas:
+        pygame.draw.circle(TELA, BRANCO, estrela, 1)
+
+    for evento in pygame.event.get():
+        if evento.type == pygame.QUIT:
+            rodando = False
+
+        if evento.type == TIMER_OVO:
+            ovos.append(pygame.Rect(random.randint(0, LARGURA-20), random.randint(0, ALTURA-20), 20, 20))
+        if evento.type == TIMER_BAU:
+            baus.append(pygame.Rect(random.randint(0, LARGURA-30), random.randint(0, ALTURA-30), 30, 30))
+        if evento.type == TIMER_MINI_BAU:
+            mini_baus.append(pygame.Rect(random.randint(0, LARGURA-15), random.randint(0, ALTURA-15), 15, 15))
+
+        if evento.type == pygame.KEYDOWN:
+            if evento.key == pygame.K_SPACE and turno == "heroi":
+                dano = heroi.atacar(inimigo)
+                print(f"Luz Astral atacou com {dano} de dano!")
+                turno = "inimigo"
+            elif evento.key == pygame.K_RETURN and turno == "inimigo":
+                dano = inimigo.atacar(heroi)
+                print(f"Sombra Cósmica atacou com {dano} de dano!")
+                turno = "heroi"
+
+    # Desenhar objetos
+    for ovo in ovos[:]:
+        pygame.draw.ellipse(TELA, AMARELO, ovo)
+        if heroi.x - 30 < ovo.x < heroi.x + 30 and heroi.y - 30 < ovo.y < heroi.y + 30:
+            ovos.remove(ovo)
+            contador_ovos += 1
+
+    for bau in baus[:]:
+        pygame.draw.rect(TELA, VERDE, bau)
+        if heroi.x - 40 < bau.x < heroi.x + 40 and heroi.y - 40 < bau.y < heroi.y + 40:
+            baus.remove(bau)
+            contador_baus += 1
+
+    for mini in mini_baus[:]:
+        pygame.draw.rect(TELA, AZUL_CLARO, mini)
+        if heroi.x - 25 < mini.x < heroi.x + 25 and heroi.y - 25 < mini.y < heroi.y + 25:
+            mini_baus.remove(mini)
+            contador_mini_baus += 1
+
+    # Atualizar campeões
+    heroi.desenhar()
+    inimigo.desenhar()
+
+    # Contadores de itens
+    texto_itens = fonte.render(f"Ovos: {contador_ovos} | Baús: {contador_baus} | Mini-Baús: {contador_mini_baus}", True, BRANCO)
+    TELA.blit(texto_itens, (20, 20))
+
+    # Fim do jogo
+    if heroi.hp <= 0 or inimigo.hp <= 0:
+        vencedor = "Luz Astral" if heroi.hp > 0 else "Sombra Cósmica"
+        texto_final = fonte.render(f"{vencedor} venceu!", True, ROXO)
+        TELA.blit(texto_final, (LARGURA//2 - 100, ALTURA//2))
+        pygame.display.update()
+        pygame.time.wait(3000)
+        rodando = False
+
+    pygame.display.update()
+    pygame.time.Clock().tick(30)
+
+pygame.quit()
+sys.exit()
